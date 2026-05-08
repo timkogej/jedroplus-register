@@ -27,7 +27,7 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: "Jedro+",
-  description: "Jedro+ - Registracija",
+  description: "Jedro+ — Registracijski obrazec",
 };
 
 export default function RootLayout({
