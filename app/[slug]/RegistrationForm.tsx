@@ -30,8 +30,8 @@ interface Translations {
   successHeading: string
   successSubtext: string
   networkError: string
-  packageInvalidTitle: string
-  packageInvalidSubtext: string
+  alreadyTitle: string
+  alreadySubtext: string
   loadingText1: string
   loadingText2: string
   notesPlaceholder: string
@@ -50,7 +50,7 @@ interface FormData {
   marketing_consent: boolean
 }
 
-type Phase = 'loading' | 'form' | 'success' | 'package_invalid'
+type Phase = 'loading' | 'form' | 'success' | 'already'
 
 interface Props {
   companyId: string
@@ -86,8 +86,8 @@ const translations: Record<Language, Translations> = {
     successHeading: 'Hvala, ker ste del naše zgodbe',
     successSubtext: 'Na vaš email naslov smo poslali potrditev. Veselimo se, da vas bomo kmalu spoznali.',
     networkError: 'Prišlo je do napake. Poskusite znova ali kontaktirajte podjetje.',
-    packageInvalidTitle: 'Ta funkcija trenutno ni na voljo.',
-    packageInvalidSubtext: 'Prosimo kontaktirajte podjetje za več informacij.',
+    alreadyTitle: 'Videti je, da ste že vpisani.',
+    alreadySubtext: 'Vaših podatkov nismo podvojili. Če mislite, da gre za napako, nas kontaktirajte.',
     loadingText1: 'Pridružite se naši zgodbi',
     loadingText2: 'Dobrodošleni',
     notesPlaceholder: 'Morebitne opombe ali posebne zahteve...',
@@ -117,8 +117,8 @@ const translations: Record<Language, Translations> = {
     successHeading: 'Thank you for being part of our story',
     successSubtext: 'We have sent a confirmation to your email. We look forward to meeting you soon.',
     networkError: 'Something went wrong. Please try again or contact the business.',
-    packageInvalidTitle: 'This feature is currently unavailable.',
-    packageInvalidSubtext: 'Please contact the company for more information.',
+    alreadyTitle: 'It looks like you are already registered.',
+    alreadySubtext: 'We did not create a duplicate entry. If you think this is a mistake, please contact us.',
     loadingText1: 'Join our story',
     loadingText2: 'Welcome',
     notesPlaceholder: 'Any notes or special requests...',
@@ -148,8 +148,8 @@ const translations: Record<Language, Translations> = {
     successHeading: 'Hvala što ste deo naše priče',
     successSubtext: 'Poslali smo potvrdu na vašu email adresu. Radujemo se susretu sa vama.',
     networkError: 'Došlo je do greške. Pokušajte ponovo ili kontaktirajte preduzeće.',
-    packageInvalidTitle: 'Ova funkcija trenutno nije dostupna.',
-    packageInvalidSubtext: 'Molimo kontaktirajte kompaniju za više informacija.',
+    alreadyTitle: 'Izgleda da ste već registrovani.',
+    alreadySubtext: 'Nismo napravili duplikat. Ako mislite da je ovo greška, kontaktirajte nas.',
     loadingText1: 'Pridružite se našoj priči',
     loadingText2: 'Dobrodošli',
     notesPlaceholder: 'Eventualne napomene ili posebni zahtevi...',
@@ -179,8 +179,8 @@ const translations: Record<Language, Translations> = {
     successHeading: 'Hvala što ste dio naše priče',
     successSubtext: 'Poslali smo potvrdu na vašu email adresu. Veselimo se susretu s vama.',
     networkError: 'Došlo je do pogreške. Pokušajte ponovo ili kontaktirajte tvrtku.',
-    packageInvalidTitle: 'Ova funkcija trenutno nije dostupna.',
-    packageInvalidSubtext: 'Molimo kontaktirajte tvrtku za više informacija.',
+    alreadyTitle: 'Izgleda da ste već registrirani.',
+    alreadySubtext: 'Nismo napravili duplikat. Ako mislite da je ovo greška, kontaktirajte nas.',
     loadingText1: 'Pridružite se našoj priči',
     loadingText2: 'Dobrodošli',
     notesPlaceholder: 'Eventualne napomene ili posebni zahtevi...',
@@ -200,7 +200,7 @@ function detectLanguage(): Language {
   return 'en'
 }
 
-const LOADING_DURATION = 2500
+const LOADING_DURATION = 800
 const N8N_WEBHOOK = '/api/register'
 
 // ─── Language options ─────────────────────────────────────────────────────────
@@ -482,6 +482,7 @@ export default function RegistrationForm({
   const [errors, setErrors] = useState<Partial<Record<keyof FormData, string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [honeypot, setHoneypot] = useState('')
 
   const t = translations[lang]
   const primaryGradient = `linear-gradient(135deg, ${brandPrimary} 0%, ${brandSecond} 100%)`
@@ -556,18 +557,26 @@ export default function RegistrationForm({
       const res = await fetch(N8N_WEBHOOK, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ company_id: companyId, slug, ...formData }),
+        body: JSON.stringify({ company_id: companyId, slug, website: honeypot, ...formData }),
       })
 
-      const body = await res.json().catch(() => ({})) as { success?: boolean; error?: string }
+      const body = (await res.json().catch(() => ({}))) as {
+        success?: boolean
+        duplicate?: boolean
+        error?: string
+      }
 
-      if (res.status === 200 && body.success === true) {
+      if (res.ok && body.success === true && !body.duplicate) {
         setPhase('success')
         return
       }
 
-      if (res.status === 403 && body.error === 'no_package') {
-        setPhase('package_invalid')
+      // The backend answers an already-registered client with 200 and either
+      // `duplicate` or an empty body — it deliberately does NOT create a second
+      // record. Telling them they are already on the list beats "something
+      // went wrong".
+      if (res.ok && (body.duplicate === true || body.error === 'duplicate' || body.success === undefined)) {
+        setPhase('already')
         return
       }
 
@@ -825,9 +834,9 @@ export default function RegistrationForm({
         )}
       </AnimatePresence>
 
-      {/* ── Package Invalid Screen ────────────────────────────────────────────── */}
+      {/* ── Already registered ───────────────────────────────────────────────── */}
       <AnimatePresence>
-        {phase === 'package_invalid' && (
+        {phase === 'already' && (
           <motion.div
             style={{
               minHeight: '100vh',
@@ -880,7 +889,7 @@ export default function RegistrationForm({
                   marginBottom: '0.625rem',
                 }}
               >
-                {t.packageInvalidTitle}
+                {t.alreadyTitle}
               </h2>
               <p
                 style={{
@@ -890,7 +899,7 @@ export default function RegistrationForm({
                   fontWeight: 300,
                 }}
               >
-                {t.packageInvalidSubtext}
+                {t.alreadySubtext}
               </p>
             </div>
           </motion.div>
@@ -1055,6 +1064,25 @@ export default function RegistrationForm({
                 transition={{ duration: 0.5, delay: 0.08, ease: [0.16, 1, 0.3, 1] }}
                 noValidate
               >
+                {/* Honeypot: hidden from people, filled in by bots. */}
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  aria-hidden="true"
+                  value={honeypot}
+                  onChange={e => setHoneypot(e.target.value)}
+                  style={{
+                    position: 'absolute',
+                    left: '-9999px',
+                    width: '1px',
+                    height: '1px',
+                    opacity: 0,
+                    pointerEvents: 'none',
+                  }}
+                />
+
                 {/* ── Ime ──────────────────────────────────────────────── */}
                 <FloatingField
                   label={t.firstName}
@@ -1406,8 +1434,8 @@ const inputStyle: React.CSSProperties = {
   border: 'none',
   outline: 'none',
   background: 'transparent',
-  padding: '0.5rem 0 0.375rem',
-  fontSize: '0.9375rem',
+  padding: '0.75rem 0 0.625rem',
+  fontSize: '1rem',
   color: '#111827',
   fontFamily: 'inherit',
   lineHeight: 1.5,
