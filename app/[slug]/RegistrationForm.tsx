@@ -58,6 +58,8 @@ interface Props {
   brandPrimary: string
   brandSecond: string
   companyName: string
+  /** Public URL of the company logo, or null when none is uploaded. */
+  logoUrl?: string | null
 }
 
 // ─── Translations ─────────────────────────────────────────────────────────────
@@ -471,6 +473,7 @@ export default function RegistrationForm({
   brandPrimary,
   brandSecond,
   companyName,
+  logoUrl,
 }: Props) {
   const [phase, setPhase] = useState<Phase>('loading')
   const [lang, setLang] = useState<Language>('en')
@@ -1021,7 +1024,16 @@ export default function RegistrationForm({
                       textOverflow: 'ellipsis',
                     }}
                   >
-                    {companyName}
+                    {logoUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={logoUrl}
+                        alt={companyName}
+                        style={{ maxHeight: '36px', maxWidth: '200px', objectFit: 'contain' }}
+                      />
+                    ) : (
+                      companyName
+                    )}
                   </h1>
                   <p
                     style={{

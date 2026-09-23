@@ -161,6 +161,7 @@ export default async function RegisterSlugPage({ params }: PageProps) {
       brandPrimary={raw.brand_primary || '#1A1F36'}
       brandSecond={raw.brand_second || '#6366F1'}
       companyName={companyDisplayName(raw)}
+      logoUrl={typeof raw.logo_url === 'string' && raw.logo_url ? raw.logo_url : null}
     />
   )
 }
