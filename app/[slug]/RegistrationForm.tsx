@@ -84,7 +84,7 @@ const translations: Record<Language, Translations> = {
     gdprRequired: 'Strinjanje z GDPR je obvezno',
     genderRequired: 'Izberite spol',
     successHeading: 'Hvala, ker ste del naše zgodbe',
-    successSubtext: 'Vaši podatki so shranjeni. Hvala, ker ste z nami.',
+    successSubtext: 'Vaši podatki so shranjeni pri {company}. Se vidimo kmalu!',
     networkError: 'Prišlo je do napake. Poskusite znova ali kontaktirajte podjetje.',
     alreadyTitle: 'Videti je, da ste že vpisani.',
     alreadySubtext: 'Vaših podatkov nismo podvojili. Če mislite, da gre za napako, nas kontaktirajte.',
@@ -115,7 +115,7 @@ const translations: Record<Language, Translations> = {
     gdprRequired: 'GDPR consent is required',
     genderRequired: 'Please select a gender',
     successHeading: 'Thank you for being part of our story',
-    successSubtext: 'Your details have been saved. Thank you for being with us.',
+    successSubtext: 'Your details have been saved with {company}. See you soon!',
     networkError: 'Something went wrong. Please try again or contact the business.',
     alreadyTitle: 'It looks like you are already registered.',
     alreadySubtext: 'We did not create a duplicate entry. If you think this is a mistake, please contact us.',
@@ -146,7 +146,7 @@ const translations: Record<Language, Translations> = {
     gdprRequired: 'Pristanak na GDPR je obavezan',
     genderRequired: 'Izaberite pol',
     successHeading: 'Hvala što ste deo naše priče',
-    successSubtext: 'Vaši podaci su sačuvani. Hvala što ste sa nama.',
+    successSubtext: 'Vaši podaci su sačuvani kod {company}. Vidimo se uskoro!',
     networkError: 'Došlo je do greške. Pokušajte ponovo ili kontaktirajte preduzeće.',
     alreadyTitle: 'Izgleda da ste već registrovani.',
     alreadySubtext: 'Nismo napravili duplikat. Ako mislite da je ovo greška, kontaktirajte nas.',
@@ -177,7 +177,7 @@ const translations: Record<Language, Translations> = {
     gdprRequired: 'Pristanak na GDPR je obavezan',
     genderRequired: 'Odaberite spol',
     successHeading: 'Hvala što ste dio naše priče',
-    successSubtext: 'Vaši podaci su spremljeni. Hvala što ste s nama.',
+    successSubtext: 'Vaši podaci su spremljeni kod {company}. Vidimo se uskoro!',
     networkError: 'Došlo je do pogreške. Pokušajte ponovo ili kontaktirajte tvrtku.',
     alreadyTitle: 'Izgleda da ste već registrirani.',
     alreadySubtext: 'Nismo napravili duplikat. Ako mislite da je ovo greška, kontaktirajte nas.',
@@ -187,6 +187,13 @@ const translations: Record<Language, Translations> = {
     optional: 'nije obavezno',
     formSubtitle: 'Postanite dio naše priče — unesite svoje podatke ispod.',
   },
+}
+
+const successFallback: Record<Language, string> = {
+  sl: 'Vaši podatki so shranjeni. Se vidimo kmalu!',
+  en: 'Your details have been saved. See you soon!',
+  sr: 'Vaši podaci su sačuvani. Vidimo se uskoro!',
+  hr: 'Vaši podaci su spremljeni. Vidimo se uskoro!',
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -485,6 +492,11 @@ export default function RegistrationForm({
   const [honeypot, setHoneypot] = useState('')
 
   const t = translations[lang]
+  // The success line names the company; without a name we drop that part
+  // rather than printing an empty gap.
+  const successSubtext = companyName
+    ? t.successSubtext.replace('{company}', companyName)
+    : successFallback[lang]
   const primaryGradient = `linear-gradient(135deg, ${brandPrimary} 0%, ${brandSecond} 100%)`
   const textGradient = `linear-gradient(90deg, ${brandPrimary} 0%, #4F8DF7 50%, ${brandSecond} 100%)`
 
@@ -813,7 +825,7 @@ export default function RegistrationForm({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.4, duration: 0.45 }}
               >
-                {t.successSubtext}
+                {successSubtext}
               </motion.p>
 
               <motion.p
